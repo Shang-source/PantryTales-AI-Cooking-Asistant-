@@ -1,0 +1,46 @@
+# .dockerignore for PantryTales Backend
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
+bin/
+obj/
+publish/
+out/
+
+# User secrets (never include in Docker image)
+secrets.json
+
+# Logs
+*.log
+logs/
+
+# Test results
+TestResults/
+coverage/
+
+# Documentation
+*.md
+docs/
+
+# Local environment files
+.env
+.env.*
+appsettings.Development.json
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Mobile app (not needed for backend)
+../mobile/

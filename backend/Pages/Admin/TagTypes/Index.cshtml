@@ -1,0 +1,187 @@
+@page
+@model backend.Pages.Admin.TagTypes.IndexModel
+@{
+    ViewData["Title"] = "Tag Types";
+}
+
+<div x-data="{ showCreateModal: false, showEditModal: false, editId: null, editName: '', editDisplayName: '', editDescription: '', openEditModal(button) { const data = button.dataset; this.editId = parseInt(data.tagTypeId); this.editName = data.tagName || ''; this.editDisplayName = data.tagDisplayName || ''; this.editDescription = data.tagDescription || ''; this.showEditModal = true; } }">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Tag Types</h2>
+            <p class="text-sm text-gray-600 mt-1">Manage tag type definitions and categories</p>
+        </div>
+        <button @@click="showCreateModal = true"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Tag Type
+        </button>
+    </div>
+
+    <!-- Messages -->
+    @if (TempData["Message"] != null)
+    {
+        <div class="mb-4 flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-sm text-green-800">@TempData["Message"]</span>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-4 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            <span class="text-sm text-red-800">@TempData["Error"]</span>
+        </div>
+    }
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Display Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Internal Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @foreach (var tagType in Model.TagTypes)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">@tagType.DisplayName</td>
+                            <td class="px-4 py-3 text-sm font-mono text-gray-600">@tagType.Name</td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                @(tagType.Description ?? "-")
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                @tagType.CreatedAt.ToString("yyyy-MM-dd")
+                            </td>
+                            <td class="px-4 py-3 text-sm text-right">
+                                <button type="button"
+                                    data-tag-type-id="@tagType.Id"
+                                    data-tag-name="@System.Web.HttpUtility.JavaScriptStringEncode(tagType.Name)"
+                                    data-tag-display-name="@System.Web.HttpUtility.JavaScriptStringEncode(tagType.DisplayName)"
+                                    data-tag-description="@System.Web.HttpUtility.JavaScriptStringEncode(tagType.Description ?? "")"
+                                    @@click="openEditModal($event.currentTarget)"
+                                    class="text-blue-600 hover:text-blue-800 font-medium mr-3">
+                                    Edit
+                                </button>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@tagType.Id"
+                                    onsubmit="return confirm('Delete this tag type? Tags with this type will not be deleted.');"
+                                    class="inline">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!Model.TagTypes.Any())
+        {
+            <div class="p-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">No tag types found. Create your first tag type to get started.</p>
+            </div>
+        }
+    </div>
+
+    <!-- Create Modal -->
+    <div x-show="showCreateModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        x-cloak>
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @@click="showCreateModal = false"></div>
+        <div class="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 z-10">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New Tag Type</h3>
+            <form method="post" asp-page-handler="Create">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Internal Name</label>
+                        <input asp-for="NewTagType.Name" placeholder="e.g. diet, meal_type, cuisine"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" required />
+                        <span asp-validation-for="NewTagType.Name" class="text-red-600 text-xs"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                        <input asp-for="NewTagType.DisplayName" placeholder="e.g. Diet, Meal Type, Cuisine"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" required />
+                        <span asp-validation-for="NewTagType.DisplayName" class="text-red-600 text-xs"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea asp-for="NewTagType.Description" rows="3"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            placeholder="Optional description for this tag type"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" @@click="showCreateModal = false"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+                        Create Tag Type
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        x-cloak>
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @@click="showEditModal = false"></div>
+        <div class="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 z-10">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Tag Type</h3>
+            <form method="post" asp-page-handler="Edit">
+                <input type="hidden" asp-for="EditId" x-model="editId" />
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Internal Name</label>
+                        <input asp-for="EditTagType.Name" x-model="editName"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" required />
+                        <span asp-validation-for="EditTagType.Name" class="text-red-600 text-xs"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                        <input asp-for="EditTagType.DisplayName" x-model="editDisplayName"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" required />
+                        <span asp-validation-for="EditTagType.DisplayName" class="text-red-600 text-xs"></span>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea asp-for="EditTagType.Description" x-model="editDescription" rows="3"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            placeholder="Optional description for this tag type"></textarea>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" @@click="showEditModal = false"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

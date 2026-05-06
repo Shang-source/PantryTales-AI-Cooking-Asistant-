@@ -1,0 +1,401 @@
+@page
+@model backend.Pages.Admin.Knowledgebase.IndexModel
+@{
+    ViewData["Title"] = "Knowledge Base";
+}
+
+<div x-data="{
+        showCreateModal: false,
+        showEditModal: false,
+        editId: '',
+        editTitle: '',
+        editSubtitle: '',
+        editIconName: '',
+        editContent: '',
+        editTagId: 0,
+        editIsPublished: true,
+        editIsFeatured: false,
+        openEditModal(button) {
+            const data = button.dataset;
+            this.editId = data.articleId;
+            this.editTitle = data.articleTitle || '';
+            this.editSubtitle = data.articleSubtitle || '';
+            this.editIconName = data.articleIconName || '';
+            this.editContent = data.articleContent || '';
+            this.editTagId = parseInt(data.articleTagId);
+            this.editIsPublished = data.articleIsPublished === 'true';
+            this.editIsFeatured = data.articleIsFeatured === 'true';
+            this.showEditModal = true;
+        }
+    }">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">Knowledge Base</h2>
+            <p class="text-sm text-gray-600 mt-1">Manage knowledge base articles</p>
+        </div>
+        <button @@click="showCreateModal = true"
+            class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Article
+        </button>
+    </div>
+
+    <!-- Filter -->
+    <div class="mb-4">
+        <form method="get" class="flex flex-wrap items-center gap-3">
+            <label class="text-sm font-medium text-gray-700">Filter by Tag:</label>
+            <select name="filterTagId" onchange="this.form.submit()"
+                class="border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border">
+                <option value="">All Tags</option>
+                @foreach (var tag in Model.Tags)
+                {
+                    <option value="@tag.Id" selected="@(Model.FilterTagId == tag.Id)">@tag.DisplayName</option>
+                }
+            </select>
+            <label class="text-sm font-medium text-gray-700 ml-4">Per page:</label>
+            <select name="PageSize" onchange="this.form.submit()"
+                class="border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border">
+                <option value="10" selected="@(Model.PageSize == 10)">10</option>
+                <option value="20" selected="@(Model.PageSize == 20)">20</option>
+                <option value="50" selected="@(Model.PageSize == 50)">50</option>
+                <option value="100" selected="@(Model.PageSize == 100)">100</option>
+            </select>
+        </form>
+    </div>
+
+    <!-- Messages -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="mb-4 flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clip-rule="evenodd" />
+            </svg>
+            <span class="text-sm text-green-800">@TempData["Success"]</span>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="mb-4 flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clip-rule="evenodd" />
+            </svg>
+            <span class="text-sm text-red-800">@TempData["Error"]</span>
+        </div>
+    }
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr class="border-b border-gray-200">
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tag
+                        </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Featured</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Updated</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    @foreach (var article in Model.Articles)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3">
+                                <div class="text-sm font-medium text-gray-900">@article.Title</div>
+                                @if (!string.IsNullOrEmpty(article.Subtitle))
+                                {
+                                    <div class="text-xs text-gray-500">@article.Subtitle</div>
+                                }
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                <span
+                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    @article.Tag?.DisplayName
+                                </span>
+                            </td>
+                            <td class="px-4 py-3 text-sm">
+                                @if (article.IsPublished)
+                                {
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Published
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        Draft
+                                    </span>
+                                }
+                            </td>
+                            <td class="px-4 py-3 text-center">
+                                <form method="post" asp-page-handler="ToggleFeatured" asp-route-id="@article.Id" class="inline">
+                                    <input type="hidden" name="p" value="@Model.CurrentPage" />
+                                    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                                    <input type="hidden" name="FilterTagId" value="@Model.FilterTagId" />
+                                    <button type="submit" title="@(article.IsFeatured ? "Remove from featured" : "Add to featured")"
+                                        class="@(article.IsFeatured ? "text-amber-500 hover:text-amber-600" : "text-gray-300 hover:text-amber-400") transition-colors">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="px-4 py-3 text-sm text-gray-500">
+                                @article.UpdatedAt.ToString("MMM dd, yyyy")
+                            </td>
+                            <td class="px-4 py-3 text-sm text-right">
+                                <button type="button" data-article-id="@article.Id"
+                                    data-article-title="@System.Web.HttpUtility.HtmlAttributeEncode(article.Title)"
+                                    data-article-subtitle="@System.Web.HttpUtility.HtmlAttributeEncode(article.Subtitle ?? "")"
+                                    data-article-icon-name="@System.Web.HttpUtility.HtmlAttributeEncode(article.IconName ?? "")"
+                                    data-article-content="@System.Web.HttpUtility.HtmlAttributeEncode(article.Content)"
+                                    data-article-tag-id="@article.TagId"
+                                    data-article-is-published="@article.IsPublished.ToString().ToLower()"
+                                    data-article-is-featured="@article.IsFeatured.ToString().ToLower()"
+                                    @@click="openEditModal($event.currentTarget)"
+                                    class="text-blue-600 hover:text-blue-800 font-medium mr-3">
+                                    Edit
+                                </button>
+                                <form method="post" asp-page-handler="Delete" asp-route-id="@article.Id"
+                                    onsubmit="return confirm('Delete this article?');" class="inline">
+                                    <input type="hidden" name="p" value="@Model.CurrentPage" />
+                                    <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                                    <input type="hidden" name="FilterTagId" value="@Model.FilterTagId" />
+                                    <button type="submit"
+                                        class="text-red-600 hover:text-red-800 font-medium">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (!Model.Articles.Any())
+        {
+            <div class="p-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">No articles found. Create your first article to get started.</p>
+            </div>
+        }
+    </div>
+
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="mt-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="text-sm text-gray-600">
+                Showing @(((Model.CurrentPage - 1) * Model.PageSize) + 1) - @Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalArticles) of @Model.TotalArticles articles
+            </div>
+            <div class="flex gap-2">
+                @if (Model.CurrentPage > 1)
+                {
+                    <a href="@Url.Page("Index", new { p = Model.CurrentPage - 1, PageSize = Model.PageSize, FilterTagId = Model.FilterTagId })"
+                        class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Previous
+                    </a>
+                }
+                else
+                {
+                    <span class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-md text-sm font-medium text-gray-400 cursor-not-allowed">
+                        Previous
+                    </span>
+                }
+
+                <span class="px-4 py-2 text-sm text-gray-600">
+                    Page @Model.CurrentPage of @Model.TotalPages
+                </span>
+
+                @if (Model.CurrentPage < Model.TotalPages)
+                {
+                    <a href="@Url.Page("Index", new { p = Model.CurrentPage + 1, PageSize = Model.PageSize, FilterTagId = Model.FilterTagId })"
+                        class="px-4 py-2 bg-white border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Next
+                    </a>
+                }
+                else
+                {
+                    <span class="px-4 py-2 bg-gray-100 border border-gray-200 rounded-md text-sm font-medium text-gray-400 cursor-not-allowed">
+                        Next
+                    </span>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- Create Modal -->
+    <div x-show="showCreateModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        x-cloak>
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @@click="showCreateModal = false"></div>
+        <div class="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 z-10 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New Article</h3>
+            <form method="post" asp-page-handler="Create">
+                <input type="hidden" name="p" value="@Model.CurrentPage" />
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                <input type="hidden" name="FilterTagId" value="@Model.FilterTagId" />
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tag</label>
+                        <select asp-for="NewArticle.TagId"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            required>
+                            <option value="">Select a tag...</option>
+                            @foreach (var tag in Model.Tags)
+                            {
+                                <option value="@tag.Id">@tag.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input asp-for="NewArticle.Title" placeholder="Article title"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            required />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Subtitle (optional)</label>
+                        <input asp-for="NewArticle.Subtitle" placeholder="Brief description"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Icon Name (optional)</label>
+                        <input asp-for="NewArticle.IconName" placeholder="e.g. info-circle"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                        <textarea asp-for="NewArticle.Content" rows="8"
+                            placeholder="Article content (supports markdown)"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            required></textarea>
+                    </div>
+
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center">
+                            <input asp-for="NewArticle.IsPublished" type="checkbox"
+                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                            <label class="ml-2 text-sm text-gray-700">Publish immediately</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input asp-for="NewArticle.IsFeatured" type="checkbox"
+                                class="h-4 w-4 text-amber-500 border-gray-300 rounded focus:ring-amber-500" />
+                            <label class="ml-2 text-sm text-gray-700">Featured on homepage</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" @@click="showCreateModal = false"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+                        Create Article
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div x-show="showEditModal" style="display: none;" class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        x-cloak>
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm" @@click="showEditModal = false"></div>
+        <div class="relative bg-white rounded-xl shadow-xl max-w-2xl w-full p-6 z-10 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Article</h3>
+            <form method="post" asp-page-handler="Edit">
+                <input type="hidden" asp-for="EditId" x-model="editId" />
+                <input type="hidden" name="p" value="@Model.CurrentPage" />
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+                <input type="hidden" name="FilterTagId" value="@Model.FilterTagId" />
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tag</label>
+                        <select asp-for="EditArticle.TagId" x-model="editTagId"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            required>
+                            @foreach (var tag in Model.Tags)
+                            {
+                                <option value="@tag.Id">@tag.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input asp-for="EditArticle.Title" x-model="editTitle"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            required />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Subtitle (optional)</label>
+                        <input asp-for="EditArticle.Subtitle" x-model="editSubtitle"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Icon Name (optional)</label>
+                        <input asp-for="EditArticle.IconName" x-model="editIconName"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                        <textarea asp-for="EditArticle.Content" x-model="editContent" rows="8"
+                            class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm py-2 px-3 border"
+                            required></textarea>
+                    </div>
+
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center">
+                            <input asp-for="EditArticle.IsPublished" type="checkbox" x-model="editIsPublished"
+                                class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                            <label class="ml-2 text-sm text-gray-700">Published</label>
+                        </div>
+                        <div class="flex items-center">
+                            <input asp-for="EditArticle.IsFeatured" type="checkbox" x-model="editIsFeatured"
+                                class="h-4 w-4 text-amber-500 border-gray-300 rounded focus:ring-amber-500" />
+                            <label class="ml-2 text-sm text-gray-700">Featured on homepage</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" @@click="showEditModal = false"
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-medium rounded-md transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,81 @@
+# PantryTales Backend - AWS App Runner Deployment
+# Builds Docker image, pushes to ECR, and deploys to App Runner
+#
+# NOTE: This workflow requires IAM credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
+# For AWS SSO/Academy accounts, use ./scripts/deploy-to-aws.sh instead.
+
+name: Deploy Backend
+
+on:
+  workflow_dispatch:  # Manual trigger only (requires IAM credentials in GitHub Secrets)
+  # Uncomment below to enable auto-deploy on push (requires IAM credentials):
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'backend/**'
+  #     - '.github/workflows/deploy-backend.yml'
+
+env:
+  AWS_REGION: ap-southeast-2
+  ECR_REPOSITORY: pantrytales-backend
+
+jobs:
+  build-and-deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build the Docker image
+          docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f backend/Dockerfile .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          # Push both tags
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Deploy to App Runner
+        env:
+          SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+        run: |
+          # Trigger a new deployment by starting a deployment
+          # App Runner will automatically pull the latest image due to auto-deployment
+
+          if [ -n "$SERVICE_ARN" ]; then
+            echo "Triggering deployment for App Runner service..."
+            aws apprunner start-deployment --service-arn $SERVICE_ARN
+            echo "Deployment triggered successfully!"
+          else
+            echo "APP_RUNNER_SERVICE_ARN not set. Skipping App Runner deployment."
+            echo "The new image has been pushed to ECR. You can manually deploy from the App Runner console."
+          fi
+
+      - name: Output deployment info
+        run: |
+          echo "## Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: ${{ steps.build-image.outputs.image }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region**: ${{ env.AWS_REGION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

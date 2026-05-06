@@ -1,0 +1,50 @@
+@page
+@model backend.Pages.Admin.LoginModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - PantryTales Admin</title>
+    <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+</head>
+
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">Admin Login</h1>
+
+        <form method="post">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="password">Password</label>
+                <input
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="password" name="Password" type="password" placeholder="Enter admin password">
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="mb-4 text-red-500 text-sm">
+                    @Model.ErrorMessage
+                </div>
+            }
+
+            <div class="flex items-center justify-between">
+                <button
+                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full"
+                    type="submit">
+                    Sign In
+                </button>
+            </div>
+        </form>
+        <div class="mt-4 text-center text-xs text-gray-400">
+            PantryTales Internal Console
+        </div>
+    </div>
+</body>
+
+</html>
